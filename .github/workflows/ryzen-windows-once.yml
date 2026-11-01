@@ -1,0 +1,72 @@
+# A single bounded Windows build for the RYZEN branch.
+# The event must modify this workflow AND carry this exact commit message.
+# Later source pushes will not restart the job.
+name: RYZEN one-shot Windows build
+
+on:
+  push:
+    branches:
+      - feature/ryzen-razer-device-compat
+    paths:
+      - .github/workflows/ryzen-windows-once.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ryzen-windows-one-shot
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_PROFILE_DEV_DEBUG: none
+  CARGO_BUILD_JOBS: 2
+
+jobs:
+  build:
+    if: github.event.head_commit.message == 'ci: start bounded RYZEN Windows build once'
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.99.1
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Cache bundled CPython
+        uses: actions/cache@v6
+        with:
+          path: vendor/pbs-cache
+          key: pbs-${{ runner.os }}-${{ hashFiles('crates/neuron-core/build.rs') }}
+          restore-keys: pbs-${{ runner.os }}-
+      - name: Resolve upgraded dependencies and build Windows binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          cargo update
+          if ($LASTEXITCODE -ne 0) { throw "dependency resolution failed: $LASTEXITCODE" }
+          cargo metadata --format-version 1 --locked --no-deps | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "lockfile inconsistent: $LASTEXITCODE" }
+          cargo build -p neuron-host --features bridge --bin neuron-chroma-broker --locked
+          if ($LASTEXITCODE -ne 0) { throw "Chroma broker build failed: $LASTEXITCODE" }
+          $env:NEURON_BROKER_SHA256 = (Get-FileHash target/debug/neuron-chroma-broker.exe -Algorithm SHA256).Hash
+          $env:NEURON_BROKER_INSTALLER_SHA256 = (Get-FileHash packaging/windows/install-chroma-broker.ps1 -Algorithm SHA256).Hash
+          cargo build -p neuron-app -p neuron-cli --locked
+          if ($LASTEXITCODE -ne 0) { throw "Neuron Windows app/CLI build failed: $LASTEXITCODE" }
+          & .\target\debug\neuron.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "CLI smoke check failed: $LASTEXITCODE" }
+      - name: Upload test binaries and resolved lockfile
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: neuron-ryzen-windows-debug-${{ github.sha }}
+          path: |
+            target/debug/neuron-app.exe
+            target/debug/neuron.exe
+            target/debug/neuron-chroma-broker.exe
+            Cargo.lock
+          retention-days: 2
+          if-no-files-found: error
