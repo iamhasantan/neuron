@@ -27,6 +27,21 @@ static OBSERVED: LazyLock<Vec<HardwareHint>> = LazyLock::new(|| {
         .device
 });
 
+/// Some high-rate Razer receivers/mice have a verified failure mode: a legacy
+/// polling write can reduce a previously configured 8 kHz link to 500 Hz.
+///
+/// OpenRazer issue #2950 documents this for the DeathAdder V3 Pro wireless
+/// alternative PID 00C3; PID 00B3 is its HyperPolling receiver. The standard
+/// 1 kHz setter must not be offered by auto-adoption on either ID. Likewise,
+/// a successful extended-rate getter alone does not verify the write sequence.
+/// Hardware-tested curated definitions can explicitly opt into the correct path.
+/// https://github.com/openrazer/openrazer/issues/2950
+#[must_use]
+pub fn needs_verified_polling_write(vid: u16, pid: u16, command: &str) -> bool {
+    vid == 0x1532 && matches!(pid, 0x00B3 | 0x00C3)
+        && matches!(command, "set_polling" | "set_polling2")
+}
+
 /// An OS-reported hardware identity, never an assertion that a Neuron command works.
 #[must_use]
 pub fn observed(vid: u16, pid: u16) -> Option<&'static HardwareHint> {
@@ -53,6 +68,18 @@ mod tests {
         assert!(!receiver.model.contains("DeathAdder"));
         assert!(observed(0x1532, 0x48F0).is_none());
         assert!(observed(0x1234, 0x024E).is_none());
+    }
+
+    #[test]
+    fn unverified_high_rate_devices_never_advertise_synthetic_polling_writes() {
+        for pid in [0x00B3, 0x00C3] {
+            assert!(needs_verified_polling_write(0x1532, pid, "set_polling"));
+            assert!(needs_verified_polling_write(0x1532, pid, "set_polling2"));
+            assert!(!needs_verified_polling_write(0x1532, pid, "polling_rate"));
+            assert!(!needs_verified_polling_write(0x1532, pid, "polling2"));
+        }
+        assert!(!needs_verified_polling_write(0x1532, 0x024E, "set_polling"));
+        assert!(!needs_verified_polling_write(0x1234, 0x00B3, "set_polling"));
     }
 
     #[test]
