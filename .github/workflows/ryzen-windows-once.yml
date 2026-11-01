@@ -1,7 +1,7 @@
 # A single bounded Windows build for the RYZEN branch.
 # The event must modify this workflow AND carry this exact commit message.
 # Later source pushes will not restart the job.
-# Retry after correcting the Slint 1.18.1 unstable-wgpu-29 feature.
+# Final attempt: original Cargo dependency graph, unchanged Cargo.lock.
 name: RYZEN one-shot Windows build
 
 on:
@@ -27,7 +27,7 @@ env:
 jobs:
   build:
     if: >-
-      github.event.head_commit.message == 'ci: start bounded RYZEN Windows build once'
+      github.event.head_commit.message == 'ci: restore original dependencies and retry Windows once'
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
@@ -44,12 +44,11 @@ jobs:
           path: vendor/pbs-cache
           key: pbs-${{ runner.os }}-${{ hashFiles('crates/neuron-core/build.rs') }}
           restore-keys: pbs-${{ runner.os }}-
-      - name: Resolve upgraded dependencies and build Windows binaries
+      - name: Build Windows binaries with original locked dependencies
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          cargo update
-          if ($LASTEXITCODE -ne 0) { throw "dependency resolution failed: $LASTEXITCODE" }
+          # Use the original pinned lockfile; do not update any crates.
           cargo metadata --format-version 1 --locked --no-deps | Out-Null
           if ($LASTEXITCODE -ne 0) { throw "lockfile inconsistent: $LASTEXITCODE" }
           cargo build -p neuron-host --features bridge --bin neuron-chroma-broker --locked

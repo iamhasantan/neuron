@@ -1346,12 +1346,15 @@ fn scalar(xml: &str, tag: &str) -> Option<String> {
     let mut in_tag = false;
     loop {
         match reader.read_event_into(&mut buf) {
-            Ok(Event::Start(e)) if e.name().as_ref() == tag => in_tag = true,
+            Ok(Event::Start(e)) if e.name().as_ref() == tag.as_bytes() => in_tag = true,
             Ok(Event::Text(t)) if in_tag => {
-                let text = t.xml_content(quick_xml::XmlVersion::Implicit1_0);
-                return Some(text.trim().to_string()).filter(|s| !s.is_empty());
+                return t
+                    .unescape()
+                    .ok()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty());
             }
-            Ok(Event::End(e)) if e.name().as_ref() == tag => {
+            Ok(Event::End(e)) if e.name().as_ref() == tag.as_bytes() => {
                 // Start immediately followed by End (e.g. `<Active />` was Empty; an empty
                 // `<Tag></Tag>` lands here) -> no text.
                 return None;
@@ -1379,7 +1382,7 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
     let mut capture_depth: Option<usize> = None;
     let mut depth = 0usize;
     let mut current = String::new();
-    let target = tag;
+    let target = tag.as_bytes();
 
     loop {
         match reader.read_event_into(&mut buf) {
@@ -1388,7 +1391,7 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
                 if capture_depth.is_some() {
                     // Re-emit nested markup verbatim into the current block.
                     current.push('<');
-                    current.push_str(e.name().as_ref());
+                    current.push_str(&String::from_utf8_lossy(e.name().as_ref()));
                     current.push('>');
                 }
                 if is_target && capture_depth.is_none() {
@@ -1408,7 +1411,7 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
                         capture_depth = None;
                     } else {
                         current.push_str("</");
-                        current.push_str(e.name().as_ref());
+                        current.push_str(&String::from_utf8_lossy(e.name().as_ref()));
                         current.push('>');
                     }
                 }
@@ -1416,13 +1419,13 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
             Ok(Event::Empty(e)) => {
                 if capture_depth.is_some() {
                     current.push('<');
-                    current.push_str(e.name().as_ref());
+                    current.push_str(&String::from_utf8_lossy(e.name().as_ref()));
                     current.push_str("/>");
                 }
             }
             Ok(Event::Text(t)) => {
                 if capture_depth.is_some() {
-                    current.push_str(t.as_ref());
+                    current.push_str(&String::from_utf8_lossy(t.as_ref()));
                 }
             }
             Ok(Event::Eof) => break,

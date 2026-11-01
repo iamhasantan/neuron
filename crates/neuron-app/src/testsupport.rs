@@ -30,7 +30,7 @@ use std::sync::{Mutex, MutexGuard};
 /// neuron-core/src/transport.rs). The guard is leaked deliberately: the denial is process-lifetime,
 /// not scoped. A probe that genuinely needs the wire opts back in, by name, with
 /// `neuron::transport::allow_real_hardware()`.
-#[ctor::ctor(unsafe)]
+#[ctor::ctor]
 fn deny_hardware_for_all_tests() {
     std::mem::forget(neuron::transport::deny_hardware());
 }

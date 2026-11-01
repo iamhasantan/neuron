@@ -61,11 +61,11 @@ serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 anyhow.workspace = true
-base64 = "0.23.1"
-sha2 = "0.11.1"
+base64 = "0.22"
+sha2 = "0.10"
 csv = "1.3"
 regex = "1.11"
-png = "0.18.1"
+png = "0.17"
 
 # The Woflo Labs Engram trajectory codec, included under its own terms — the rhythm
 # familiar's brain in KNOCKBACK: every exchange is an Engram block; the twin's knockback is
@@ -85,7 +85,7 @@ quick-xml.workspace = true
 # tar/gzip). `dirs` resolves the per-user data-local dir cross-platform.
 tar = "0.4"
 flate2 = "1"
-dirs = "7"
+dirs = "6"
 
 # Build-time only: fetch + verify the python-build-standalone tarball for the build target.
 # `ureq` is a small blocking HTTP client (rustls, no OpenSSL); `sha2` checks the download
@@ -97,7 +97,7 @@ dirs = "7"
 # the graph.
 [build-dependencies]
 ureq = "3"
-sha2 = "0.11.1"
+sha2 = "0.10"
 tar = "0.4"
 flate2 = "1"
 
@@ -109,7 +109,7 @@ flate2 = "1"
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
-version = "0.61.2"
+version = "0.59"
 features = [
     "Win32_Foundation",
     "Win32_Security",
@@ -136,7 +136,7 @@ features = [
 proptest = "1"
 static_assertions = "1.1"
 ureq = "3"
-sha2 = "0.11.1"
+sha2 = "0.10"
 tar = "0.4"
 flate2 = "1"
 

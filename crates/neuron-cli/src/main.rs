@@ -4523,7 +4523,7 @@ mod tests {
     /// deny-by-default transport policy only covers its own `cfg(test)` build, and this crate links
     /// it as a plain dependency (see neuron-core/src/transport.rs). Leaked deliberately: the denial
     /// is process-lifetime; a hardware probe opts back in with `transport::allow_real_hardware()`.
-    #[ctor::ctor(unsafe)]
+    #[ctor::ctor]
     fn deny_hardware_for_all_tests() {
         std::mem::forget(neuron::transport::deny_hardware());
     }

@@ -88,9 +88,9 @@ impl SoundEngine {
         let fmt = supported.sample_format();
         let config: cpal::StreamConfig = supported.config();
         let stream = match fmt {
-            cpal::SampleFormat::F32 => build::<f32>(&device, config, shared.clone()),
-            cpal::SampleFormat::I16 => build::<i16>(&device, config, shared.clone()),
-            cpal::SampleFormat::U16 => build::<u16>(&device, config, shared.clone()),
+            cpal::SampleFormat::F32 => build::<f32>(&device, &config, shared.clone()),
+            cpal::SampleFormat::I16 => build::<i16>(&device, &config, shared.clone()),
+            cpal::SampleFormat::U16 => build::<u16>(&device, &config, shared.clone()),
             other => {
                 crate::flight::trace("audio", "unsupported sample format", other as u64);
                 return None;
@@ -123,7 +123,7 @@ impl SoundEngine {
 /// pool + the consumer cursor; nothing it touches allocates or locks once warm.
 fn build<T>(
     device: &cpal::Device,
-    config: cpal::StreamConfig,
+    config: &cpal::StreamConfig,
     shared: Arc<Shared>,
 ) -> Option<cpal::Stream>
 where
