@@ -58,6 +58,9 @@ env:
   # here so it survives the cache action changing.)
   CARGO_INCREMENTAL: 0
 
+permissions:
+  contents: read
+
 jobs:
   gate:
     name: what changed
@@ -117,10 +120,10 @@ jobs:
     if: needs.gate.outputs.code == 'true'
     runs-on: windows-latest
     # Swatinem/rust-cache caches dependencies, not neuron's own workspace artifacts, so they
-    # recompile every run regardless; a warm run lands around 21 min. 60 is headroom for a
-    # cold run (GitHub evicts a cache untouched for 7 days). cache-on-failure below still
-    # saves what a timed-out run built, so the next run isn't stuck cold forever.
-    timeout-minutes: 60
+    # recompile every run regardless; a warm run lands around 21 min. The
+    # 35-minute limit prevents a stalled cold runner consuming an entire hour.
+    # cache-on-failure retains dependencies when an upgrade fails.
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -151,7 +154,7 @@ jobs:
     if: needs.gate.outputs.code == 'true'
     runs-on: ubuntu-latest
     # The Linux app is part of the suite and links GTK/AppIndicator/X11 dependencies.
-    timeout-minutes: 60
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
