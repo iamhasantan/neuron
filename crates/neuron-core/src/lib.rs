@@ -66,6 +66,7 @@ pub mod hid_haptics;
 pub mod gesture;
 pub mod glyph;
 pub mod haptics;
+pub mod hardware;
 pub mod gwyph;
 pub mod hidpp;
 pub mod honesty;
