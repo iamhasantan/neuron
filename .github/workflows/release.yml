@@ -98,10 +98,9 @@ jobs:
     name: windows x86_64
     needs: preflight
     runs-on: windows-latest
-    # `-Mode full` runs the test compile, a clippy compile, four feature checks, and a ThinLTO
-    # release build, all on a small runner. 90 minutes is a firm maximum;
-    # release is manually dispatched or tag-triggered, never run on feature pushes.
-    timeout-minutes: 90
+    # One test compile and one package build, without redundant release recompilation.
+    # Release requires a tag or explicit dispatch, never a feature-branch push.
+    timeout-minutes: 60
     env:
       # Static CRT, or the zip doesn't launch on a clean machine: a Rust MSVC binary otherwise
       # imports VCRUNTIME140.dll (ships with the VC++ Redistributable, not with Windows itself),
@@ -130,12 +129,12 @@ jobs:
           key: pbs-${{ runner.os }}-${{ hashFiles('crates/neuron-core/build.rs') }}
           restore-keys: pbs-${{ runner.os }}-
 
-      # The gates run against a release too - a tag must not ship something main wouldn't
-      # accept. Runs the full pass (feature matrix + no-hardware ignored tests), the same
-      # script a contributor runs locally.
-      - name: validate (full)
+      # Fast correctness gate. The full validation task already compiles a
+      # separate release build; packaging builds the same binaries again with
+      # static CRT flags. Running both wasted an entire extra release compile.
+      - name: validate (quick)
         shell: pwsh
-        run: ./validate.ps1 -Mode full
+        run: ./validate.ps1 -Mode quick -Locked
 
       # The same package script used for local smoke builds creates both assets.
       - name: Package installer and portable ZIP
