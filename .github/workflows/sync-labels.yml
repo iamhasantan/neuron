@@ -10,17 +10,11 @@
 # Safe on every change: the sync is idempotent and never deletes a label. A label that exists
 # on GitHub but not in the file is reported in the run log, not removed.
 #
-# A few seconds on linux, and ci.yml's gate treats these files as non-code, so editing labels
-# never triggers a windows build.
+# Manual-only on Windows so labels maintenance does not consume scheduled CI minutes.
 
 name: sync-labels
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - .github/labels.yml
-      - .github/sync-labels.sh
   workflow_dispatch:
 
 permissions:
@@ -36,8 +30,8 @@ concurrency:
 
 jobs:
   sync:
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    runs-on: windows-latest
+    timeout-minutes: 3
     steps:
       - uses: actions/checkout@v7
       - name: sync
