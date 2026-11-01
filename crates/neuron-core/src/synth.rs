@@ -479,6 +479,12 @@ pub fn synthesize(t: &dyn Transport, ctx: &SynthCtx) -> Option<Synthesis> {
             .entry(e.name.to_string())
             .or_insert_with(|| cmd(e.class, e.id, e.size, e.args));
         for s in e.setters {
+            // Getter replies cannot validate the receiver's high-rate write
+            // sequence. Keep new auto defs read-only for polling on 00B3/00C3;
+            // existing cached auto defs are also guarded by DeviceDef::command.
+            if crate::hardware::needs_verified_polling_write(ctx.vid, ctx.pid, s.name) {
+                continue;
+            }
             commands
                 .entry(s.name.to_string())
                 .or_insert_with(|| cmd(s.class, s.id, s.size, &[]));
