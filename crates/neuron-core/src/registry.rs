@@ -192,7 +192,20 @@ impl DeviceDef {
     }
     #[must_use]
     pub fn command(&self, name: &str) -> Option<&CommandSpec> {
+        // A synthesized getter is not evidence that a high-rate polling setter is safe.
+        // Reject even OLD cached auto definitions; the receiver may retain 8 kHz
+        // until a legacy command silently drops it to 500 Hz (OpenRazer #2950).
+        if self.origin == DefOrigin::Auto
+            && crate::hardware::needs_verified_polling_write(self.vendor_id,
+                self.mode_for_first_pid(), name)
+        {
+            return None;
+        }
         self.commands.get(name)
+    }
+
+    fn mode_for_first_pid(&self) -> u16 {
+        self.modes.first().map_or(0, |m| m.product_id)
     }
     /// Is `info` the CONTROL pipe this def drives? Which HID collection of a composite device is the
     /// control pipe is DIALECT knowledge, not a universal triple compare: razer matches by the
@@ -231,7 +244,7 @@ impl DeviceDef {
     /// command that will time out or return Unsupported.
     #[must_use]
     pub fn has_command(&self, name: &str) -> bool {
-        self.commands.contains_key(name)
+        self.command(name).is_some()
     }
 
     /// Does this device expose a given semantic [`Capability`]? This is the additive, registry-driven
