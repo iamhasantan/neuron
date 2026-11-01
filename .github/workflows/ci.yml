@@ -2,184 +2,71 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Additional permission: Neuron-Woflo exception; see repository-root LICENSE.md.
 
-# The gate on every push and pull request.
-#
-# This file deliberately contains no cargo commands. The gates live in `validate.ps1` at the
-# repo root, and both CI and a human run the same script, so "it passed on my machine" stays
-# meaningful. This workflow only decides which mode runs on which runner.
-#
-#   .\validate.ps1              <- before you commit
-#   .\validate.ps1 -Mode full   <- the thorough pass, same as the manual "full" run below
-#
-# Cost model: GitHub bills windows runners at a 2x multiplier and linux at 1x, so a cheap
-# linux `gate` job decides whether the expensive windows job wakes up at all:
-#
-#   gate  (linux, ~10s, 1x)  - did any code change?
-#     +-- test (windows, 2x)  only if code changed
-#     +-- test (linux,   1x)  only if code changed; also runs the platform-free lint lane
-#
-# Both test jobs run the same mode; each proves its own platform. fmt and the shipped-script
-# parse ride the linux job since they need no platform; clippy lives in `-Mode full`, being a
-# second full workspace compile that gates nothing.
-#
-# A `gate` job rather than `paths-ignore`: a skipped-by-`if` job still reports, satisfying a
-# required status check, where a path-filtered workflow simply never runs.
-
+# Windows is the tested and shipped platform. A single short job replaces the
+# former Linux gate and duplicate Linux test build.
 name: ci
 
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '_shots/**'
+      - '.github/labels.yml'
+      - '.github/sync-labels.sh'
+      - '.github/workflows/sync-labels.yml'
+      - '.github/workflows/release.yml'
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - '_shots/**'
+      - '.github/labels.yml'
+      - '.github/sync-labels.sh'
+      - '.github/workflows/sync-labels.yml'
+      - '.github/workflows/release.yml'
   workflow_dispatch:
     inputs:
       depth:
-        description: "quick = what every push runs. full = + feature matrix + release build + the CI-safe ignored tests."
+        description: 'quick = tests; full = clippy, features and release build'
         type: choice
         options: [quick, full]
         default: quick
 
-# A new push to the same branch supersedes the old run - don't burn minutes on stale commits.
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
-
-  # Compilation, not test execution, is the entire cost here. Full debuginfo means PDBs for
-  # the whole workspace, worth nothing to a CI run nobody attaches a debugger to.
-  # `line-tables-only` keeps file/line in the backtrace and drops the rest.
+  CARGO_INCREMENTAL: 0
   CARGO_PROFILE_DEV_DEBUG: line-tables-only
   CARGO_PROFILE_TEST_DEBUG: line-tables-only
 
-  # Incremental compilation is a pessimisation on a fresh runner: extra state written to speed
-  # up a next build that never happens on a throwaway VM. (rust-cache sets this too; stated
-  # here so it survives the cache action changing.)
-  CARGO_INCREMENTAL: 0
-
-permissions:
-  contents: read
-
 jobs:
-  gate:
-    name: what changed
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    outputs:
-      code: ${{ steps.decide.outputs.code }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # need history to diff against the base
-
-      - id: decide
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # A manual run is always deliberate.
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "manual run: forcing the full job set"
-            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-
-          base="${{ github.event.pull_request.base.sha || github.event.before }}"
-          # A brand-new branch reports an all-zero "before" with nothing to diff against.
-          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
-            echo "no usable base ref: assuming code changed"
-            echo "code=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-
-          changed="$(git diff --name-only "$base" "${{ github.sha }}")"
-          echo "changed files:"; echo "$changed" | sed 's/^/  /'
-
-          # Everything that cannot affect a build. Anything not matched here counts as code,
-          # so the failure mode is "ran CI unnecessarily", never "skipped a real change".
-          code="$(printf '%s\n' "$changed" | grep -vE \
-            -e '(^|/)[^/]+\.md$' \
-            -e '^docs/' \
-            -e '^LICENSES?/' \
-            -e '^LICENSE\.md$' \
-            -e '^\.github/(ISSUE_TEMPLATE|CODEOWNERS|labels\.yml|social-preview\.png|LABELS\.md|pull_request_template\.md|dependabot\.yml|sync-labels\.sh)' \
-            -e '^\.github/workflows/(release|sync-labels)\.yml$' \
-            -e '^_shots/' \
-            || true)"
-
-          if [ -n "$code" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-            echo "-> code changed, running the full job set"
-          else
-            echo "code=false" >> "$GITHUB_OUTPUT"
-            echo "-> docs only, skipping the build jobs"
-          fi
-
-  test:
-    name: test (windows)
-    needs: gate
-    if: needs.gate.outputs.code == 'true'
+  windows:
+    name: Windows build and tests
     runs-on: windows-latest
-    # Swatinem/rust-cache caches dependencies, not neuron's own workspace artifacts, so they
-    # recompile every run regardless; a warm run lands around 21 min. The
-    # 35-minute limit prevents a stalled cold runner consuming an entire hour.
-    # cache-on-failure retains dependencies when an upgrade fails.
-    timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.99.1
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-
-      # `crates/neuron-core/build.rs` downloads a python-build-standalone tarball (22 MB for
-      # windows, 34 MB for linux), sha256-checks it, slims it, then embeds it. Uncached, every
-      # cold run re-downloads and re-slims it.
-      - name: Cache the bundled CPython tarball
-        uses: actions/cache@v6
-        with:
-          path: vendor/pbs-cache
-          key: pbs-${{ runner.os }}-${{ hashFiles('crates/neuron-core/build.rs') }}
-          restore-keys: pbs-${{ runner.os }}-
-
-      - name: validate
-        shell: pwsh
-        run: ./validate.ps1 -Mode ${{ inputs.depth == 'full' && 'full' || 'quick' }}
-
-  linux:
-    name: test (linux)
-    needs: gate
-    if: needs.gate.outputs.code == 'true'
-    runs-on: ubuntu-latest
-    # The Linux app is part of the suite and links GTK/AppIndicator/X11 dependencies.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.99.1
-          components: rustfmt, clippy
-      - name: Linux GUI build dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libxdo-dev libayatana-appindicator3-dev libfontconfig1-dev libasound2-dev libudev-dev
+          components: clippy, rustfmt
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - name: Cache the bundled CPython tarball
+      - name: Cache verified bundled CPython
         uses: actions/cache@v6
         with:
           path: vendor/pbs-cache
           key: pbs-${{ runner.os }}-${{ hashFiles('crates/neuron-core/build.rs') }}
           restore-keys: pbs-${{ runner.os }}-
-
-      - name: validate
+      - name: Validate Windows workspace
         shell: pwsh
-        run: ./validate.ps1 -Mode ${{ inputs.depth == 'full' && 'full' || 'quick' }}
-
-      # After the suite so a formatting advisory never masks a test failure. Cannot fail the job.
-      - name: lint
-        shell: pwsh
-        run: ./validate.ps1 -Mode lint
+        run: ./validate.ps1 -Mode ${{ inputs.depth == 'full' && 'full' || 'quick' }} -Locked
