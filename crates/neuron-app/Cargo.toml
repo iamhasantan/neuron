@@ -48,7 +48,7 @@ anyhow.workspace = true
 # selector can fall back during backend construction, but graphics initialization can
 # fail later when the window opens, so selection is not a driver compatibility test.
 slint = { version = "1.18.1", default-features = false, features = ["compat-1-2", "std", "backend-winit", "renderer-femtovg", "renderer-software"] }
-image = { version = "0.25", default-features = false, features = ["png", "gif"] }
+image = { version = "0.25.10", default-features = false, features = ["png", "gif"] }
 cpal.workspace = true
 
 [target.'cfg(any(windows, target_os = "linux"))'.dependencies]
@@ -58,11 +58,11 @@ tray-icon = "0.26.1"
 global-hotkey = "0.9.0"
 
 [target.'cfg(target_os = "linux")'.dependencies]
-gtk = "0.18"
+gtk = "0.18.2"
 
 [target.'cfg(windows)'.dependencies]
-sha2 = "0.10" # Pin the broker and embedded Chroma setup bytes before requesting elevation.
-base64 = "0.22" # Carry the embedded broker installer through UAC without reopening a writable script.
+sha2 = "0.11.1" # Pin the broker and embedded Chroma setup bytes before requesting elevation.
+base64 = "0.23.1" # Carry the embedded broker installer through UAC without reopening a writable script.
 # Lock the main thread's COM apartment to STA before winit/tray-icon/Core-Audio touch COM:
 # winit's OleInitialize needs STA, while tray-icon + neuron-core's audio request MTA.
 # Initializing STA first wins; their later MTA requests fail harmlessly (RPC_E_CHANGED_MODE).
@@ -111,7 +111,7 @@ proptest = "1"
 # `mock-transport` compiles neuron-core's transport policy into this crate's test binary; the
 # ctor hook in testsupport denies hardware before any test runs, same as neuron-core's own tests.
 neuron = { path = "../neuron-core", features = ["mock-transport"] }
-ctor = "0.2"
+ctor = "1.0.13"
 
 [lints]
 workspace = true
