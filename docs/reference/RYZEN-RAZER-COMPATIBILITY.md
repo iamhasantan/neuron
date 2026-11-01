@@ -17,6 +17,17 @@ A VID:PID match is **identity evidence only**, not evidence of a working Razer p
 
 The new observed hardware catalog only informs the read-only compatibility inspector. It does not define opcodes, change driver selection, take custody of input, or shadow automatic device adoption.
 
+**High-rate polling safeguard:** OpenRazer issue #2950 reports a DeathAdder V3 Pro
+wireless-alt interface (1532:00C3) where an attempted legacy 8 kHz polling
+write resulted in **500 Hz** instead. This PID was not seen in the user's
+Windows inventory; it is a documented related mode. This branch now declines
+to synthesize or expose unverified polling setters for 00B3 and 00C3, including
+previously cached auto definitions. Reading the polling state remains possible.
+No polling writes are enabled until the correct extended protocol and physical
+sampling rate have been verified. See:
+https://github.com/openrazer/openrazer/issues/2950
+
+
 ## Phase 0: retain a recovery path
 
 Before uninstalling any software or driver:
