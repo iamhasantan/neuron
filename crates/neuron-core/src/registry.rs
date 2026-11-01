@@ -196,16 +196,12 @@ impl DeviceDef {
         // Reject even OLD cached auto definitions; the receiver may retain 8 kHz
         // until a legacy command silently drops it to 500 Hz (OpenRazer #2950).
         if self.origin == DefOrigin::Auto
-            && crate::hardware::needs_verified_polling_write(self.vendor_id,
-                self.mode_for_first_pid(), name)
+            && self.modes.iter().any(|m|
+                crate::hardware::needs_verified_polling_write(self.vendor_id, m.product_id, name))
         {
             return None;
         }
         self.commands.get(name)
-    }
-
-    fn mode_for_first_pid(&self) -> u16 {
-        self.modes.first().map_or(0, |m| m.product_id)
     }
     /// Is `info` the CONTROL pipe this def drives? Which HID collection of a composite device is the
     /// control pipe is DIALECT knowledge, not a universal triple compare: razer matches by the
@@ -599,6 +595,22 @@ pub fn build_canonical_map(devices: &[DeviceDef]) -> std::collections::HashMap<u
 #[cfg(test)]
 mod canonical_pid_tests {
     use super::*;
+
+    #[test]
+    fn unverified_auto_receiver_never_exposes_a_legacy_polling_write() {
+        let mut def: DeviceDef = toml::from_str(include_str!("../devices/razer-naga-v2-pro.toml"))
+            .expect("builtin def parses");
+        def.origin = DefOrigin::Auto;
+        def.modes = vec![Mode { name: "receiver".into(), product_id: 0x00B3 }];
+        assert!(def.commands.contains_key("set_polling"));
+        assert!(def.command("set_polling").is_none());
+        assert!(!def.has_command("set_polling"));
+        assert!(!def.supports(Capability::SetPolling));
+        assert!(def.has_command("polling_rate"));
+        // A curated definition is an explicit hardware verification boundary.
+        def.origin = DefOrigin::Curated;
+        assert!(def.command("set_polling").is_some());
+    }
 
     #[test]
     fn every_owned_pid_maps_to_the_first_mode() {
