@@ -74,7 +74,7 @@ neuron-testkit = { path = "../neuron-testkit" }
 # `mock-transport` compiles neuron-core's transport policy into this crate's test binary;
 # the ctor hook in lib.rs denies hardware before any test runs.
 neuron = { path = "../neuron-core", features = ["mock-transport"] }
-ctor = "0.2"
+ctor = "1.0.13"
 
 [lints]
 workspace = true
