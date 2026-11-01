@@ -43,6 +43,10 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
 
+concurrency:
+  group: neuron-release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   preflight:
     name: refusals
@@ -95,8 +99,9 @@ jobs:
     needs: preflight
     runs-on: windows-latest
     # `-Mode full` runs the test compile, a clippy compile, four feature checks, and a ThinLTO
-    # release build, all on 2 cores - 60 min would time out before that finishes.
-    timeout-minutes: 180
+    # release build, all on a small runner. 90 minutes is a firm maximum;
+    # release is manually dispatched or tag-triggered, never run on feature pushes.
+    timeout-minutes: 90
     env:
       # Static CRT, or the zip doesn't launch on a clean machine: a Rust MSVC binary otherwise
       # imports VCRUNTIME140.dll (ships with the VC++ Redistributable, not with Windows itself),
