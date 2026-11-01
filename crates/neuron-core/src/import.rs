@@ -1388,7 +1388,7 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
                 if capture_depth.is_some() {
                     // Re-emit nested markup verbatim into the current block.
                     current.push('<');
-                    current.push_str(&e.name().as_ref());
+                    current.push_str(e.name().as_ref());
                     current.push('>');
                 }
                 if is_target && capture_depth.is_none() {
@@ -1408,7 +1408,7 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
                         capture_depth = None;
                     } else {
                         current.push_str("</");
-                        current.push_str(&e.name().as_ref());
+                        current.push_str(e.name().as_ref());
                         current.push('>');
                     }
                 }
@@ -1416,13 +1416,13 @@ fn split_blocks(xml: &str, tag: &str) -> Vec<String> {
             Ok(Event::Empty(e)) => {
                 if capture_depth.is_some() {
                     current.push('<');
-                    current.push_str(&e.name().as_ref());
+                    current.push_str(e.name().as_ref());
                     current.push_str("/>");
                 }
             }
             Ok(Event::Text(t)) => {
                 if capture_depth.is_some() {
-                    current.push_str(&t.as_ref());
+                    current.push_str(t.as_ref());
                 }
             }
             Ok(Event::Eof) => break,
