@@ -92,6 +92,12 @@ pub fn run(action: CompatCmd) -> Result<()> {
                 "descriptor_source": i.descriptor_source, "descriptor_complete": i.descriptor_complete,
                 "input_capture_eligible": i.input_capture_eligible
                 });
+                // VID:PID hints are OS-inventory labels, not claims of protocol support.
+                // In particular the HyperPolling receiver is NOT the paired mouse.
+                if let Some(hint) = neuron::hardware::observed(i.vid, i.pid) {
+                    summary["observed_model_hint"] = serde_json::json!(hint.model);
+                    summary["observed_role_hint"] = serde_json::json!(hint.role);
+                }
                 if local_names {
                     summary["local_product"] = serde_json::json!(local.interfaces.iter().find(|l| l.id == i.id).map(|l| &l.product));
                 }
@@ -102,6 +108,17 @@ pub fn run(action: CompatCmd) -> Result<()> {
                 "contains_local_names": local_names,
                 "interfaces": summaries, "detail": detail, "findings": findings, "input_analysis": analyses }), || {
                 println!("{}", compat::summary(&inventory, &findings));
+                // A published identity hint is safe to print; it cannot certify a setter or
+                // replace the USB device's own product string.
+                let mut shown = std::collections::BTreeSet::new();
+                for i in &inventory.interfaces {
+                    if shown.insert((i.device, i.vid, i.pid)) {
+                        if let Some(hint) = neuron::hardware::observed(i.vid, i.pid) {
+                            println!("Device {}: {} ({}) - identity only, hardware commands unverified",
+                                i.device, hint.model, hint.role);
+                        }
+                    }
+                }
                 if local_names {
                     println!("Local-only product names (not attachment content):");
                     for i in &local.interfaces { println!("Device {} / interface {}: {:?}", i.device, i.id, i.product); }
