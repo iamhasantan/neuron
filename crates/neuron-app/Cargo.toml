@@ -104,7 +104,7 @@ slint-build = "1.18.1"
 [features]
 default = []
 # Opt-in experimental WGPU UI renderer; layered overlays and materials remain CPU paths.
-wgpu-renderer = ["slint/renderer-femtovg-wgpu", "slint/unstable-wgpu-28"]
+wgpu-renderer = ["slint/renderer-femtovg-wgpu", "slint/unstable-wgpu-29"]
 
 [dev-dependencies]
 proptest = "1"
