@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: 2026 Contributors to neuron
+# SPDX-License-Identifier: GPL-3.0-or-later
+
+# Identity hints from a Windows PnP inventory taken 2026-11-01.
+# These are NOT curated device definitions, claimed protocol support or a pairing map.
+# Particularly, 00B3 identifies the HyperPolling RECEIVER, not its paired mouse.
+# Keep individual device modes and command definitions under devices/auto until probed.
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x00B3
+model = "Razer HyperPolling Wireless Dongle"
+role = "wireless_receiver"
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x024E
+model = "Razer BlackWidow V3"
+role = "keyboard"
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x0C02
+model = "Razer Goliathus Chroma"
+role = "mousepad"
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x0F20
+model = "Razer Base Station V2 Chroma"
+role = "accessory"
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x052C
+model = "Razer Kraken V3 Pro"
+role = "audio_headset"
+
+[[device]]
+vendor_id = 0x1532
+product_id = 0x0542
+model = "Razer Seiren V2 Pro"
+role = "audio_microphone"
