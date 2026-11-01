@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Additional permission: Neuron-Woflo exception; see repository-root LICENSE.md.
 
-# Push .github/labels.yml onto the repo's labels whenever it changes on main.
+# Manually reconcile .github/labels.yml with repository labels.
 #
 # labels.yml is the configuration of record; this runs the same sync-labels.sh you'd run by
 # hand, so there's exactly one implementation.
@@ -18,9 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  # Declaring ANY permission drops every unlisted one to none, and that includes the
-  # contents:read that checkout needs. On a private repo that surfaces as a baffling
-  # "repository not found". It did, on this workflow's first run.
+  # Checkout needs contents read; label writes need issues write.
   contents: read
   issues: write # creating/updating labels is an issues-scoped permission
 
