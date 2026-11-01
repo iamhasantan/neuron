@@ -1,6 +1,7 @@
 # A single bounded Windows build for the RYZEN branch.
 # The event must modify this workflow AND carry this exact commit message.
 # Later source pushes will not restart the job.
+# Retry after correcting the Slint 1.18.1 unstable-wgpu-29 feature.
 name: RYZEN one-shot Windows build
 
 on:
