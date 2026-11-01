@@ -57,7 +57,7 @@ use bus::Bus;
 /// plain dependency (see neuron-core/src/transport.rs). Leaked deliberately: the denial is
 /// process-lifetime; a hardware probe opts back in with `transport::allow_real_hardware()`.
 #[cfg(test)]
-#[ctor::ctor]
+#[ctor::ctor(unsafe)]
 fn deny_hardware_for_all_tests() {
     std::mem::forget(neuron::transport::deny_hardware());
 }
