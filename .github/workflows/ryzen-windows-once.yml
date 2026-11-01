@@ -25,7 +25,8 @@ env:
 
 jobs:
   build:
-    if: github.event.head_commit.message == 'ci: start bounded RYZEN Windows build once'
+    if: >-
+      github.event.head_commit.message == 'ci: start bounded RYZEN Windows build once'
     runs-on: windows-latest
     timeout-minutes: 25
     steps:
