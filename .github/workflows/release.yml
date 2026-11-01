@@ -9,7 +9,7 @@
 #
 # Windows release, three stages:
 #
-#   preflight (linux, ~10s)  - the refusals: tag vs Cargo version, private repo
+#   preflight (Windows, quick)  - the refusals: tag vs Cargo version, private repo
 #     +-- windows            - installer + portable ZIP
 #           +-- publish      - one checksum file, one attestation pass, one draft release
 #
@@ -50,7 +50,7 @@ concurrency:
 jobs:
   preflight:
     name: refusals
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 5
     outputs:
       version: ${{ steps.v.outputs.version }}
@@ -155,7 +155,7 @@ jobs:
   publish:
     name: draft release
     needs: [preflight, windows]
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7 # for .github/releases/<tag>.md
