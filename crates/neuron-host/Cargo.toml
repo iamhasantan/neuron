@@ -32,7 +32,7 @@ anyhow = { workspace = true, optional = true }
 # buffers). Only compiled on Windows and only when `bridge` is on; the pure protocol codec
 # needs none of it.
 [target.'cfg(windows)'.dependencies.windows-sys]
-version = "0.59"
+version = "0.61.2"
 optional = true
 features = [
     "Win32_Foundation",
