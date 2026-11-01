@@ -109,7 +109,7 @@ flate2 = "1"
 libc = "0.2"
 
 [target.'cfg(windows)'.dependencies.windows-sys]
-version = "0.59"
+version = "0.61.2"
 features = [
     "Win32_Foundation",
     "Win32_Security",
