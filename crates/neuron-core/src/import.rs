@@ -1348,7 +1348,7 @@ fn scalar(xml: &str, tag: &str) -> Option<String> {
         match reader.read_event_into(&mut buf) {
             Ok(Event::Start(e)) if e.name().as_ref() == tag => in_tag = true,
             Ok(Event::Text(t)) if in_tag => {
-                let text = t.xml_content(quick_xml::escape::XmlVersion::Implicit1_0);
+                let text = t.xml_content(quick_xml::XmlVersion::Implicit1_0);
                 return Some(text.trim().to_string()).filter(|s| !s.is_empty());
             }
             Ok(Event::End(e)) if e.name().as_ref() == tag => {
